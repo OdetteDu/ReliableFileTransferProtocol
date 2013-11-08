@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-FILE *fp1,*fp2;
+FILE *fp1;
 /* Interpret flags in command line, to get information about target machine
  * and file that will be transmitted */
 bool parseFlag(int argc, char *argv[])
@@ -55,17 +55,11 @@ void cleanup()
 }
 
 //open the Files
-bool OpenFiles(const char * ASourceName, const char * AListingName){
+bool OpenFiles(const char * ASourceName){
 	if((fp1 = fopen(ASourceName, "r"))==NULL){
 		printf("There is something wrong when reading the source file.\n");
 		return false;
 	}
-		if ((fp2 = fopen(AListingName,"w"))==NULL) {
-		fp2 = stdout;
-	}
-	column_num = 0;
-	line_num = 0;
-	status==0;//set the initial values
 	return true;
 }
 
@@ -76,17 +70,6 @@ void CloseFiles(){
 	}else {
 		printf("Can't close the source file\n");
 	}
-
-	if (fp2 != stdout) {//if the listing file has been provided
-	if(fclose(fp2)==0){
-		printf("The listing file close successfully\n");
-	}else {
-		printf("Can't close the listing file\n");
-	}
-	}else {
-		printf("No output file can be closed\n");
-	}
-
 }
 
 /* main of sendfile */
