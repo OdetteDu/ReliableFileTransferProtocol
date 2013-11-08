@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <sys/wait.h>
 
 void printError(char *error) {
 	printf("***Error***\n\t%s\n", error);
@@ -20,6 +21,7 @@ int main(int argc, char *argv[]) {
 	char *buf;
 	int i, count;
 	socklen_t addrlen;
+	int status;
 	
 	if (argc < 2) {
 		printError("Must specify port number in command line.");
@@ -47,17 +49,35 @@ int main(int argc, char *argv[]) {
 	sin.sin_port = htons(server_port);
 	addrlen = sizeof(sin);
 
-	// receive UDP packet
-	count = recvfrom(sock, buf, 26, 0, (struct sockaddr*) &sin, &addrlen);
-
-	if (count < 0) 
-		perror("Receive packet fails.");
-	else {
-		printf("Receive %d bytes.\nContent: ", count);
-		for (i = 0; i < count; i++)
-			printf("%c", buf[i]);
-		printf("\n");
+	if (bind(sock, (struct sockaddr*) &sin, sizeof(sin)) < 0) {
+		printError("cannot bind socket to the port.");
+		exit(0);
 	}
 
+	if (fork() == 0) {
+		// receive UDP packet
+		while (true) {
+			count = recvfrom(sock, buf, 26, 0, (struct sockaddr*) &sin, &addrlen);
+
+			if (count < 0) 
+				perror("Receive packet fails.");
+			else {
+				printf("Receive %d bytes.\nContent: ", count);
+				for (i = 0; i < count; i++)
+					printf("%c", buf[i]);
+				printf("\n");
+			}
+		}
+	}
+	else {
+		while (true) {
+			sleep(10);
+			printf("waiting...\n");
+		}
+		wait(&status);
+	}
+
+	delete buf;
+	close(sock);
 	return 0;
 }

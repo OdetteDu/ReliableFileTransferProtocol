@@ -18,8 +18,8 @@ int main(int argc, char *argv[])
 {
 	int sock;
 	struct sockaddr_in sin;
-	struct hostent *host = gethostbyname("cai.cs.rice.edu");
-	unsigned int server_addr = *(unsigned int*) host->h_addr_list[0];
+	//struct hostent *host = gethostbyname("cai.cs.rice.edu");
+	unsigned int server_addr = 0x297507a8;
 	unsigned short server_port = -1;
 	char *buf;
 	int i, count;
@@ -46,22 +46,22 @@ int main(int argc, char *argv[])
 	for (i = 0; i < 26; i++)
 		buf[i] = 'a' + i;
 
-	printf("server address: %x\n", server_addr);
-
 	// set address information
 	memset(&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = server_addr;
 	sin.sin_port = htons(server_port);
 
-	// send the UDP packet
-	count = sendto(sock, buf, 26, 0, (struct sockaddr*) &sin, sizeof(sin));
+	for (int j = 0; j < 10; j++) {
+		// send the UDP packet
+		count = sendto(sock, buf, 26, 0, (struct sockaddr*) &sin, sizeof(sin));
 
-	if (count < 0) 
-		perror("Send packet fails.");
-	else 
-		printf("Send %d bytes.\n", count);
-	
+		if (count < 0) 
+			perror("Send packet fails.");
+		else 
+			printf("Send %d bytes. Index: %d\n", count, j);
+	}
+
 	close(sock);
 	delete buf;
 	return 0;
