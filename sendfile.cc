@@ -27,16 +27,32 @@ void sendFile_small()
 		}
 		data[countSize%maxPackageSize] = '\0';
 		char *thepacket = (char*)malloc(sizeof(char)*(countSize%maxPackageSize+20));
-		getPacket_small(thepacket, data.length, countSize);
+		if(c == EOF){
+			getPacket_small(thepacket, data.length, countSize, 1);
+		}
+		getPacket_small(thepacket, data.length, countSize, 0);
 		//to send the packet codes here---
 	}
 }
 
 /* Construct the small packet, including MD5, length of payload, offset in the
  * whole file and sequence number */
-void getPacket_small(char *packet, char *payload, unsigned short payloadLen, unsigned short offset)
+void getPacket_small(char *packet, char *payload, unsigned short payloadLen, unsigned short offset, int status)
 {
+	unsigned int header;
+	uint8_t digest[16];
 	
+	if(status == 1){
+	header = (payloadLen<<20)|(offset<<8)|(0x3);
+	}else{
+			header = (payloadLen<<20)|(offset<<8)|(ox1);
+	}
+	
+	*(unsigned int*)(packet+16) = htonl(header);
+	
+	md5((uint8_t *) (packet+16), payloadLen, digest);
+	
+	*(uint8_t*)(packet) = digest;
 }
 
 /* process the received acknowledgement for small file*/
