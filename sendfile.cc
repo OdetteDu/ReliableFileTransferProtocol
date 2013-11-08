@@ -75,6 +75,7 @@ void CloseFiles(){
 /* main of sendfile */
 int main(int argc, char *argv[])
 {
+	OpenFiles(argv[0]);
 	printf("Now this program is simply for testing the MD5 function.\n");
 	if (argc < 2) {
 		printf("<usage> %s [input_string]\n", argv[0]);
