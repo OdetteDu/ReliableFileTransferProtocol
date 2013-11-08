@@ -72,6 +72,48 @@ void CloseFiles(){
 	}
 }
 
+//get the next character from the source file
+char GetSourceChar(){
+	int i=0;
+	
+	//if the status has value 0, then store the whole information in the line
+	if(status == 0){
+		while(true){
+			c=fgetc(fp1);	
+		   if (c == '\n') {
+			   array[i] = '\0';//(MARK 1)store the information as '\0' instead of '\n' to avoid after printing the end of lines, the consor will go to next line		
+			   break;
+		   }
+			if (c == EOF) {
+				array[i] = EOF;
+				break;
+			}
+			array[i] = c;
+			i++;			
+		}
+		
+	status = 1;//after make the array, set status to value 1, so that when call this function and get the character in the same line will not make the array again.
+	fprintf(fp2,"%4d:%s\n",++line_num,array);	//print out the whole line into the output file
+	}
+	c = array[GetCurrentColumn()];//get the current character
+	
+	if (c!=EOF) {
+			if(c == '\0'){//when c is a newline character, search for "MARK 1", for more infor mation
+		        column_num = 0;				
+				memset(array,0,MAXLINE+1);//clean the array
+				status = 0;//set the status as value 0, since we have not stored information for the next line yet
+				return '\n';
+		}
+		if(c!='\0'){
+			column_num++;//if c is a charactor not at the end of the line, then just increase the column number
+			return c;
+		}
+		}else {
+			column_num = 0;//if c is the end of file then set the column value to 0, so that we can get catch the line in test file
+			return EOF;
+		}	
+}
+
 /* main of sendfile */
 int main(int argc, char *argv[])
 {
