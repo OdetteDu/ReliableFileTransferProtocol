@@ -6,6 +6,7 @@
 #include <string.h>
 
 FILE *fp1;
+
 /* Interpret flags in command line, to get information about target machine
  * and file that will be transmitted */
 bool parseFlag(int argc, char *argv[])
@@ -13,46 +14,47 @@ bool parseFlag(int argc, char *argv[])
 }
 
 /* Send file to target when the size of file is not larger than 1MB */
-void sendFile_small()
+void readFile_small()
 {
-	int countSize = 0;
-	while(true){
 	char c;
-	int maxPackageSize = 2048;
-	char data[maxPackageSize+1];
-		while ((c = fgetc(fp1))!=EOF && maxPackageSize != 0){
-			data[countSize%maxPackageSize] = c;
-			maxPackageSize --;
-			countSize ++;
+	unsigned short countSize;
+	unsigned short offset = 0;
+	unsigned short maxPackageSize = 2048;
+	char *packet = (char*)malloc(sizeof(char) * (countSize + 20));
+
+	while(true){
+		countSize = 0;
+		
+		char data[maxPackageSize];
+		while (maxPackageSize > countSize && (c = fgetc(fp1)) != EOF) {
+			data[countSize] = c;
+			countSize++;
 		}
-		data[countSize%maxPackageSize] = '\0';
-		char *thepacket = (char*)malloc(sizeof(char)*(countSize%maxPackageSize+20));
-		if(c == EOF){
-			getPacket_small(thepacket, data.length, countSize, 1);
-		}
-		getPacket_small(thepacket, data.length, countSize, 0);
-		//to send the packet codes here---
+		
+		getPacket_small(packet, data, countSize, offset, (c==EOF) ? 1 : 0);
+		
+		//TODO: store this packet in somewhere for future use
+
+		offset++;
+		if (c == EOF)
+			break;
 	}
 }
 
 /* Construct the small packet, including MD5, length of payload, offset in the
  * whole file and sequence number */
-void getPacket_small(char *packet, char *payload, unsigned short payloadLen, unsigned short offset, int status)
+void getPacket_small(char *packet, char *payload, unsigned short payloadLen, unsigned short offset, unsigned short status)
 {
 	unsigned int header;
-	uint8_t digest[16];
 	
-	if(status == 1){
-	header = (payloadLen<<20)|(offset<<8)|(0x3);
-	}else{
-			header = (payloadLen<<20)|(offset<<8)|(ox1);
-	}
+	if(status == 1)
+		header = (payloadLen<<20)|(offset<<8)|(0x3);
+	else
+		header = (payloadLen<<20)|(offset<<8)|(0x1);
 	
 	*(unsigned int*)(packet+16) = htonl(header);
 	
-	md5((uint8_t *) (packet+16), payloadLen, digest);
-	
-	*(uint8_t*)(packet) = digest;
+	md5((uint8_t *) (packet+16), payloadLen, (uint8_t *) packet);
 }
 
 /* process the received acknowledgement for small file*/
@@ -88,7 +90,7 @@ void cleanup()
 
 //open the Files
 bool OpenFiles(const char * ASourceName){
-	if((fp1 = fopen(ASourceName, "r"))==NULL){
+	if((fp1 = fopen(ASourceName, "rb"))==NULL){
 		printf("There is something wrong when reading the source file.\n");
 		return false;
 	}
@@ -97,7 +99,7 @@ bool OpenFiles(const char * ASourceName){
 
 //close the files
 void CloseFiles(){
-	if(fclose(fp1)==0){
+	if(fclose(fp1) == 0){
 		printf("The source file close successfully\n");
 	}else {
 		printf("Can't close the source file\n");
@@ -106,21 +108,14 @@ void CloseFiles(){
 /* main of sendfile */
 int main(int argc, char *argv[])
 {
-	OpenFiles(argv[0]);
-	printf("Now this program is simply for testing the MD5 function.\n");
 	if (argc < 2) {
-		printf("<usage> %s [input_string]\n", argv[0]);
+		printf("Missing file name.\n");
 		exit(0);
 	}
-
-	uint8_t digest[16];
-	int i;
-	md5((uint8_t *) argv[1], strlen(argv[1]), digest);
+	else
+		OpenFiles(argv[1]);
 	
-	printf("MD5: ");
-	for (i = 0; i < 16; i++)
-		printf("%2.2x", digest[i]);
-	printf("\n");
-
+	readFile_small();
+	CloseFiles();
 	return 0;
 }

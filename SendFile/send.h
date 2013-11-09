@@ -6,11 +6,11 @@
 bool parseFlag(int argc, char *argv[]);
 
 /* Send file to target when the size of file is not larger than 1MB */
-void sendFile_small();
+void readFile_small();
 
 /* Construct the small packet, including MD5, length of payload, offset in the
  * whole file and sequence number */
-void getPacket_small(char *packet, char *payload, unsigned short payloadLen, unsigned short offset, unsigned short sequence);
+void getPacket_small(char *packet, char *payload, unsigned short payloadLen, unsigned short offset, unsigned short status);
 
 /* process the received acknowledgement for small file*/
 void parseACK_small(char *recvACK);
