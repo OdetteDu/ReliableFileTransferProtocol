@@ -1,7 +1,8 @@
+#include "global.h"
 #include "recvfile.h"
 
 //main receive function
-void recvfile::receive(void *packet){
+void receive(void *packet){
     uint8_t *recvMD5_Pointer = (uint8_t *) packet;
     
     
@@ -35,18 +36,18 @@ void recvfile::receive(void *packet){
 }
 
 //function that writes the received data to a local address
-void recvfile::outPut(string outPutAddress){
+void outPut(string outPutAddress){
     
 }
 
 //send back an acknowledge packet, after successfully receiving the data
-void recvfile::returnACK(int acknowledge){
+void returnACK(unsigned int acknowledge){
     //initialize a malloc
     uint8_t *toSend = (uint8_t *) malloc(20);
     
     //calculate an MD5 for the acknowledge number
     uint8_t result[16];
-    md5((uint8_t) acknowledge, 4, result);
+    md5((uint8_t *) acknowledge, 4, result);
     
     //add the MD5 into the malloc
     for (int i = 0; i < 16; i++) {
@@ -61,14 +62,14 @@ void recvfile::returnACK(int acknowledge){
     send(toSend);
 }
 
-int recvfile::getSizeByChar(void *packet){
+int getSizeByChar(void *packet){
     unsigned int *pck = (unsigned int *) packet;
     unsigned int n = ntohs(*(unsigned int *)(pck + 4));
     int size = int((a >> 20) & 0xFFF);
     return size;
 }
 
-int recvfile::getSeq(void *packet){
+int getSeq(void *packet){
     unsigned int *pck = (unsigned int *) packet;
     unsigned int n = ntohs(*(unsigned int *)(pck + 4));
     int seq = int((a << 8) & 0xFFF);

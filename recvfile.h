@@ -1,10 +1,4 @@
-#ifndef ____recvfile__
-#define ____recvfile__
 
-#include <iostream>
-
-#endif /* defined(____recvfile__) */
-Public:
 //main receive function
 void receive(void *packet);
 
