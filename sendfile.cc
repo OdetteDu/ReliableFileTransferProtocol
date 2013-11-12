@@ -1,11 +1,16 @@
 #include "global.h"
-#include "SendFile/send.h"
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "send.h"
 
-FILE *fp1;
+FILE *fp;
+map<unsigned int, char*> storage;
+map<unsigned int, unsigned short> pck_length;
+set<unsigned int> ACK;
+
+/* Initialize resource for sending file whose size is not larger than 1MB */
+void init_small()
+{
+	fp = NULL;
+}
 
 /* Interpret flags in command line, to get information about target machine
  * and file that will be transmitted */
@@ -20,21 +25,24 @@ void readFile_small()
 	unsigned short countSize;
 	unsigned short offset = 0;
 	unsigned short maxPackageSize = 2048;
-	char *packet = (char*)malloc(sizeof(char) * (countSize + 20));
+	char *packet;
 
 	while(true){
 		countSize = 0;
 		
 		char data[maxPackageSize];
-		while (maxPackageSize > countSize && (c = fgetc(fp1)) != EOF) {
+		while (maxPackageSize > countSize && (c = fgetc(fp)) != EOF) {
 			data[countSize] = c;
 			countSize++;
 		}
 		
+		packet = (char*)malloc(sizeof(char) * (countSize + 20));
 		getPacket_small(packet, data, countSize, offset, (c==EOF) ? 1 : 0);
 		
 		//TODO: store this packet in somewhere for future use
-
+		storage.insert(pair<unsigned int, char*>(offset, packet));
+		pck_length.insert(pair<unsigned int, unsigned short>(offset, countSize));
+		
 		offset++;
 		if (c == EOF)
 			break;
@@ -60,6 +68,10 @@ void getPacket_small(char *packet, char *payload, unsigned short payloadLen, uns
 /* process the received acknowledgement for small file*/
 void parseACK_small(char *recvACK)
 {
+	uint8_t r[16];
+	md5((uint8_t *) recvACK, 4, r);
+	if (packetCorrect((uint8_t *) recvACK, r))
+		ACK.insert(ntohl(*(unsigned int*)(recvACK + 16)));
 }
 
 /* Send file to target when the size of file is larger than 1MB */
@@ -86,25 +98,22 @@ void parseACK_big(char *recvACK)
 /* clean up used memory after finishing transmission */
 void cleanup()
 {
+	fclose(fp);
+	// free all memory resources in temporary storage
+	for (map<unsigned int, char*>::interator it = storage.begin(); it != storage.end(); it++) {
+		delete it->second;
+	}
 }
 
 //open the Files
 bool OpenFiles(const char * ASourceName){
-	if((fp1 = fopen(ASourceName, "rb"))==NULL){
+	if((fp = fopen(ASourceName, "rb"))==NULL){
 		printf("There is something wrong when reading the source file.\n");
 		return false;
 	}
 	return true;
 }
 
-//close the files
-void CloseFiles(){
-	if(fclose(fp1) == 0){
-		printf("The source file close successfully\n");
-	}else {
-		printf("Can't close the source file\n");
-	}
-}
 /* main of sendfile */
 int main(int argc, char *argv[])
 {
@@ -112,10 +121,14 @@ int main(int argc, char *argv[])
 		printf("Missing file name.\n");
 		exit(0);
 	}
-	else
-		OpenFiles(argv[1]);
+	else {
+		if (OpenFiles(argv[1])) {
+			readFile_small();
+			cleanup();
+		}
+		else
+			printf("cannot open the file.\n");
+	}
 	
-	readFile_small();
-	CloseFiles();
 	return 0;
 }

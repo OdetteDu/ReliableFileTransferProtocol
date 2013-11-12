@@ -1,9 +1,10 @@
 
-#define SMALL_SIZE 1048576
-
 /* Interpret flags in command line, to get information about target machine
  * and file that will be transmitted */
 bool parseFlag(int argc, char *argv[]);
+
+/* Initialize resource for sending file whose size is not larger than 1MB */
+void init_small();
 
 /* Send file to target when the size of file is not larger than 1MB */
 void readFile_small();
