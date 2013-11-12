@@ -1,16 +1,17 @@
+#include <queue>
 
 //main receive function
 void receive(void *packet);
 
-//function that writes the received data to a local address
-void outPut(string outPutAddress);
+//----------------helper-function--------------
+void returnACK(unsigned int acknowledge);                                       //send back an acknowledge packet, after successfully receiving the data
+bool packetCorrect(uint8_t * recvMD5_Pointer, uint8_t * result_Pointer);        //compare the received MD5 and the locally generated MD5
+void send(char * toSend);                                                       //a dummy send function
+bool haveStored(int sequence);
 
-//send back an acknowledge packet, after successfully receiving the data
-void returnACK(unsigned int acknowledge);
-
-//back up functions
+//----------------useless-functions------------
 int getSizeByChar(void *packet);
 int getSeq(void *packet);
 
 //variables
-string address;
+std::queue<int> stored;
