@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include <map>
 #include <set>
+#include <string>
+#include <iostream>
 
 #define SMALL_SIZE 1048576
 
