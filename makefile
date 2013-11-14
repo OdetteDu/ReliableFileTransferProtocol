@@ -1,3 +1,2 @@
 all:
-	g++ -o sendfile MD5.cc sendfile.cc
-	g++ -o recvfile MD5.cc recvfile.cc
+	g++ -o sendfile sendfile.cc MD5.cc send/checkflag.cc send/readfile.cc send/send_small.cc send/send_big.cc

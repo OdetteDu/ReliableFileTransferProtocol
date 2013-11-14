@@ -1,20 +1,13 @@
 
 /* Interpret flags in command line, to get information about target machine
  * and file that will be transmitted */
-bool parseFlag(int argc, char *argv[]);
-
-/* Initialize resource for sending file whose size is not larger than 1MB */
-void init_small();
+bool parseFlag(int argc, char *argv[], struct sockaddr_in *sin, char **filepath);
 
 /* Send file to target when the size of file is not larger than 1MB */
-void readFile_small();
-
-/* Construct the small packet, including MD5, length of payload, offset in the
- * whole file and sequence number */
-void getPacket_small(char *packet, char *payload, unsigned short payloadLen, unsigned short offset, unsigned short status);
+void readFile_small(FILE* fp, map<unsigned int, char*> *storage, map<unsigned int, unsigned short> *pck_length);
 
 /* process the received acknowledgement for small file*/
-void parseACK_small(char *recvACK);
+void parseACK_small(char *recvACK, set<unsigned int> *ACK);
 
 /* Send file to target when the size of file is larger than 1MB */
 void sendFile_big();
@@ -28,6 +21,3 @@ void getPacket_big(char *packet, char *payload, unsigned int segNumber[], unsign
 
 /* process the received acknowledgement for big file */
 void parseACK_big(char *recvACK);
-
-/* clean up used memory after finishing transmission */
-void cleanup();

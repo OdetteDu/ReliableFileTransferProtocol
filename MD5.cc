@@ -149,3 +149,11 @@ void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest) {
     to_bytes(h2, digest + 8);
     to_bytes(h3, digest + 12);
 }
+
+bool packetCorrect(uint8_t * recvMD5_Pointer, uint8_t * result_Pointer){
+    for (int i = 0; i < 16; i++)
+        if(* (recvMD5_Pointer + i) != * (result_Pointer + i))
+            return false;
+
+    return true;
+}
