@@ -29,9 +29,6 @@ int main(int argc, char *argv[])
 	int sock;
 	struct sockaddr_in sin_send;
 	struct sockaddr_in sin_recv;
-
-	map<unsigned int, char*> storage;
-	map<unsigned int, unsigned short> pck_length;
 	
 	/* parse command line arguments and prepare socket info to send data */
 	if (parseFlag(argc, argv, &sin_send, &path)) {
@@ -68,23 +65,30 @@ int main(int argc, char *argv[])
 	}
 
 	if (fileSize <= SMALL_SIZE) {
-		printf("[send data] start (%llu)\n", fileSize);
+		// initialize data structures to store all packets
+		map<unsigned int, char*> storage;
+		map<unsigned int, unsigned short> pck_length;
+		bool complete = false;
 		unsigned short largestOffset = readFile_small(fp, filename, &storage, &pck_length);
-		engage_small(sock, (struct sockaddr*) &sin_send, (struct sockaddr*) &sin_recv, largestOffset,
+		
+		// engage sending
+		printf("[send data] start (%llu)\n", fileSize);
+		complete = engage_small(sock, (struct sockaddr*) &sin_send, (struct sockaddr*) &sin_recv, largestOffset,
 			&storage, &pck_length);
+		if (complete)
+			printf("[completed]\n");
+
+		testing(&storage, &pck_length);		// TODO: for testing, will remove
+		
+		// free all memory resources in temporary storage
+		for (map<unsigned int, char*>::iterator it = storage.begin(); it != storage.end(); it++)
+			delete it->second;
 	}
 	else {
 		// TODO: prepare to send a large file
 	}
 
-	testing(&storage, &pck_length);
-
-	/* clean up */	
 	fclose(fp);
-	// free all memory resources in temporary storage
-	for (map<unsigned int, char*>::iterator it = storage.begin(); it != storage.end(); it++) {
-		delete it->second;
-	}
 	delete filename;
 	return 0;
 }
