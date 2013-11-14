@@ -2,103 +2,124 @@
 
 using namespace std;
 
-bool getIPAddress(char ip[], unsigned int *IPAddress, unsigned short *port);
+unsigned int getIPAddress(char ip[]);
+unsigned short getPortNumber(string port);
 
 int main(int argc, char *argv[])
 {
-	unsigned int ip=0;
-	unsigned short port=0;
-	string filename;
-	int i;
+        unsigned int ip=0;
+        unsigned short portNumber=0;
+        string filename;
+        int i;
 
-	if (argc < 5) {
-		cout << "at least 5 arguments.\n";
-		exit(0);
-	}
+        if (argc < 5) {
+                cout << "Invalid command line arguments. \nThe input should have at least five arguments.\n";
+                exit(0);
+        }
 
-	for(i=1; i<argc; i++)
-	{
-		string arg = string(argv[i]);
-		if(arg.compare("-r"))
-		{
-			//receiver's information
-			printf("reading an IP address...%d\n", i);
-			i++;
-			getIPAddress(argv[i], &ip, &port);
-		}
-		else if(arg.compare("-f"))
-		{
-			//file's information
-			printf("reading file name...%d\n", i);
-			i++;
-			filename = string(argv[i]);
-		}
-		else
-		{
-			printf("invalid arguments: %s\n", argv[i]);
-		}
-	}
+        for(i=1; i<argc; i++)
+        {
+                string arg = string(argv[i]);
+                if(arg.compare("-r")==0)
+                {
+                        //receiver's information
+                        i++;
+                        ip = getIPAddress(argv[i]);
+						portNumber = getPortNumber(argv[i]);
+                }
+                else if(arg.compare("-f")==0)
+                {
+                        //file's information
+                        i++;
+                        filename = string(argv[i]);
+                }
+                else
+                {
+                        printf("invalid arguments: %s\n", argv[i]);
+                }
+        }
 
-	printf("ip: %x, port: %d\nfilename:", ip, port);
+        printf("IP: %x, port: %d\nfilename:", ip, portNumber);
 
-	cout << filename << "\n";
+        cout << filename << "\n";
 }
 
-bool getIPAddress(char ip[], unsigned int *IPAddress, unsigned short *port)
+unsigned short getPortNumber(string port)
 {
-	unsigned short temp = 0;
-	unsigned short index = 0;
-	int i;
-	int len = strlen(ip);
+	int colonIndex = port.find(":");
+	port = port.substr(colonIndex+1);
+	unsigned short portNumber = 0;
 
-	//calculate ip
-	for(i=0; i < len; i++)
+	for(int i=0; i<port.length(); i++)
 	{
-		char c = ip[i];
-		if(c == '.')
+		char c = port[i];
+		if(c>='0' && c<='9')
 		{
-			if(temp>=0 && temp <= 255)
-			{
-				*IPAddress = *IPAddress | temp << index * 8;
-				index ++;
-				temp = 0;
-			}
-			else
-			{
-				cout << "invalid IP address\n";
-				return false;
-			}
-		}
-		else if(c >= '0' && c <= '9')
-		{
-			temp = temp*10 + (c-'0');
-		}
-		else if(c == ':')
-		{
-			break;
+			portNumber *= 10;
+			portNumber += (c - '0');
 		}
 		else
 		{
-			cout<<"invalid IP address";
-			return false;
+			cout << "Illegal port number" + port;
 		}
 	}
+	return portNumber;
+}
 
-	if(temp>=0 && temp <= 255)
-	{
-		*IPAddress = *IPAddress | temp << index * 8;
-		index ++;
-	}
-	else
-	{
-		cout << "invalid IP address";
-		return false;
-	}
+unsigned int getIPAddress(char ip[])
+{
+		unsigned int IPAddress = 0;
+        unsigned short temp = 0;
+        unsigned short index = 0;
+        int i;
+        int len = strlen(ip);
 
-	if (index != 4)
-		return false;
+        //calculate ip
+        for(i=0; i < len; i++)
+        {
+                char c = ip[i];
+                if(c == '.')
+                {
+                        if(temp>=0 && temp <= 255)
+                        {
+                                IPAddress = IPAddress | temp << index * 8;
+                                index ++;
+                                temp = 0;
+                        }
+                        else
+                        {
+                                cout << "invalid IP address\n";
+                                return -1;
+                        }
+                }
+                else if(c >= '0' && c <= '9')
+                {
+                        temp = temp*10 + (c-'0');
+                }
+                else if(c == ':')
+                {
+                        break;
+                }
+                else
+                {
+                        cout<<"invalid IP address";
+                        return -1;
+                }
+        }
 
-	//calculate port
-	*port = atoi(ip+i);//if atoi not successful, what will happen?
-	return true;
+        if(temp>=0 && temp <= 255)
+        {
+                IPAddress = IPAddress | temp << index * 8;
+                index ++;
+        }
+        else
+        {
+                cout << "invalid IP address";
+                return -1;
+        }
+
+        if (index != 4)
+                return -1;
+
+        return IPAddress;
 }
