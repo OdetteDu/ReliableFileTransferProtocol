@@ -21,17 +21,19 @@ int main(int argc, char *argv[])
 {
 	FILE *fp;
 	char *path = NULL;
+	bool isSmall = false;
 
 	int sock;
-	struct sockaddr_in sin;
+	struct sockaddr_in sin_send;
+	struct sockaddr_in sin_recv;
 
 	map<unsigned int, char*> storage;
 	map<unsigned int, unsigned short> pck_length;
 	
-	/* parse command line arguments and prepare all needed resources */
-	if (parseFlag(argc, argv, &sin, &path)) {
+	/* parse command line arguments and prepare socket info to send data */
+	if (parseFlag(argc, argv, &sin_send, &path)) {
 		if ((fp = fopen(path, "rb")) != NULL)
-			readFile_small(fp, &storage, &pck_length);
+			isSmall = isSmallFile(path);
 		else {
 			printf("Fail to open the file!\n");
 			exit(0);
@@ -46,12 +48,21 @@ int main(int argc, char *argv[])
 		printf("*Error* unknown error occurs when opening UDP socket.\n");
 		exit(0);
 	}
+
+	// construct receiving socket info
+	memset(&sin_recv, 0, sizeof(struct sockaddr_in));
+	sin_recv.sin_family = AF_INET;
+	sin_recv.sin_addr.s_addr = INADDR_ANY;
+	sin_recv.sin_port = sin_send.sin_port;
 	
 	// bind the socket to specified port
-	if (bind(sock, (struct sockaddr*) &sin, sizeof(sin)) < 0) {
+	if (bind(sock, (struct sockaddr*) &sin_recv, sizeof(sin_recv)) < 0) {
 		printf("*Error* cannot bind socket to the port.\n");
 		exit(0);
 	}
+
+	if (isSmall)
+		readFile_small(fp, &storage, &pck_length);
 
 	testing(&storage, &pck_length);
 

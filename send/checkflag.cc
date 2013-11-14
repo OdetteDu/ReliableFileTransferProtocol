@@ -48,8 +48,7 @@ bool getIPandPort(char *in, struct sockaddr_in *sin)
                 return false;
         }
 
-	// sin->sin_addr.s_addr = htonl(IPAddress);
-	sin->sin_addr.s_addr = INADDR_ANY;
+	sin->sin_addr.s_addr = htonl(IPAddress);
 	//printf("IP: %x\n", htonl(IPAddress));
 
 	for(i++; i < len; i++)

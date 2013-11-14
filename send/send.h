@@ -1,4 +1,7 @@
 
+/* check whether the size of file is not larger than 1MB */
+bool isSmallFile(char *path);
+
 /* Interpret flags in command line, to get information about target machine
  * and file that will be transmitted */
 bool parseFlag(int argc, char *argv[], struct sockaddr_in *sin, char **filepath);

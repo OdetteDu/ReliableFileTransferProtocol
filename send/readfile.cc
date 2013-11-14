@@ -1,6 +1,15 @@
 #include "../global.h"
 #include "send.h"
 
+#define SMALL_SIZE 1048576
+
+/* check whether the size of file is not larger than 1MB */
+bool isSmallFile(char *path) {
+	struct stat fileStat;
+	stat(path, &fileStat);
+	return (fileStat.st_size <= SMALL_SIZE);
+}
+
 /* Construct the small packet, including MD5, length of payload, offset in the
  * whole file and sequence number */
 void getPacket_small(char *packet, char *payload, unsigned short payloadLen, unsigned short offset, unsigned short status)
