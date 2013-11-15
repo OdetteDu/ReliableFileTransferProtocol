@@ -1,13 +1,27 @@
 #include "../global.h"
 #include "send.h"
 
-#define SMALL_SIZE 1048576
-
-/* check whether the size of file is not larger than 1MB */
-bool isSmallFile(char *path) {
+/* get the size of file */
+unsigned long long getSize(char *path) {
 	struct stat fileStat;
 	stat(path, &fileStat);
-	return (fileStat.st_size <= SMALL_SIZE);
+	return (long long)fileStat.st_size;
+}
+
+/* get file name, return the length of name */
+unsigned int getName(char *path, char *name) {
+	unsigned int ret = 0;
+	int len = strlen(path);
+	char c;
+	for (int i = 0; i < len; i++) {
+		c = path[i];
+		if (c == '/')
+			ret = 0;
+		else
+			name[ret++] = c;
+	}
+	name[ret] = '\0';
+	return ret;
 }
 
 /* Construct the small packet, including MD5, length of payload, offset in the
@@ -26,8 +40,10 @@ void getPacket_small(char *packet, char *payload, unsigned short payloadLen, uns
 	md5((uint8_t *) (packet+16), payloadLen, (uint8_t *) packet);
 }
 
-/* Send file to target when the size of file is not larger than 1MB */
-void readFile_small(FILE* fp, map<unsigned int, char*> *storage, map<unsigned int, unsigned short> *pck_length)
+/* Send file to target when the size of file is not larger than 1MB
+ * header can distinguish last packet with others, and the last packet only contains file name
+ * Return the largest offset (in unit of 2KB) */
+int readFile_small(FILE* fp, char *filename, map<unsigned int, char*> *storage, map<unsigned int, unsigned short> *pck_length)
 {
 	char c;
 	unsigned short countSize;
@@ -35,6 +51,7 @@ void readFile_small(FILE* fp, map<unsigned int, char*> *storage, map<unsigned in
 	unsigned short maxPackageSize = 2048;
 	char *packet;
 
+	/* construct all packets into memory */
 	while(true){
 		countSize = 0;
 		
@@ -44,26 +61,24 @@ void readFile_small(FILE* fp, map<unsigned int, char*> *storage, map<unsigned in
 			countSize++;
 		}
 		// carefully check whether the the packet size is times of 2048
-		if ((c = fgetc(fp)) != EOF)
-			fseek(fp, -1, SEEK_CUR);
+		if (countSize == 0) break;	// reach the end of file
 
 		packet = (char*)malloc(sizeof(char) * (countSize + 20));
-		getPacket_small(packet, data, countSize, offset, (c==EOF) ? 1 : 0);
+		getPacket_small(packet, data, countSize, offset, 0);
 		
 		storage->insert(pair<unsigned int, char*>(offset, packet));
 		pck_length->insert(pair<unsigned int, unsigned short>(offset, countSize));
-		
-		offset++;
-		if (c == EOF)
-			break;
-	}
-}
 
-/* process the received acknowledgement for small file*/
-void parseACK_small(char *recvACK, set<unsigned int> *ACK)
-{
-	uint8_t r[16];
-	md5((uint8_t *) recvACK, 4, r);
-	if (packetCorrect((uint8_t *) recvACK, r))
-		ACK->insert(ntohl(*(unsigned int*)(recvACK + 16)));
+		offset++;		// increment offset
+		if (c == EOF) break;	// reach the end of file		
+	}
+	
+	/* construct a special packet that contains file name */
+	unsigned short len_name = strlen(filename);
+	packet = (char*)malloc(sizeof(char) * (len_name + 20));
+	getPacket_small(packet, filename, len_name, offset, 1);
+	storage->insert(pair<unsigned int, char*>(offset, packet));
+	pck_length->insert(pair<unsigned int, unsigned short>(offset, len_name));
+
+	return offset;
 }

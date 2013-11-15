@@ -1,6 +1,8 @@
 #include "global.h"
 #include "send/send.h"
 
+#define SMALL_SIZE 1048576
+
 void testing(map<unsigned int, char*> *storage, map<unsigned int, unsigned short> *length) {
 	char *pck;
 	int i, index = 0;
@@ -13,7 +15,7 @@ void testing(map<unsigned int, char*> *storage, map<unsigned int, unsigned short
 			printf("%2.2x", *((uint8_t*)pck+i));
 		printf("\n");
 		header = ntohl(*(unsigned int*)(pck + 16));
-		printf("offset: %d\n, length: %d\n, status: %d\n", (header>>8) & 0xfff, (header>>20) & 0xfff, header & 0x3);
+		printf("offset: %d\nlength: %d\nstatus: %d\n", (header>>8) & 0xfff, (header>>20) & 0xfff, header & 0x3);
 	}
 }
 
@@ -21,19 +23,20 @@ int main(int argc, char *argv[])
 {
 	FILE *fp;
 	char *path = NULL;
-	bool isSmall = false;
+	char *filename = NULL;
+	unsigned long long fileSize = 0;
 
 	int sock;
 	struct sockaddr_in sin_send;
 	struct sockaddr_in sin_recv;
-
-	map<unsigned int, char*> storage;
-	map<unsigned int, unsigned short> pck_length;
 	
 	/* parse command line arguments and prepare socket info to send data */
 	if (parseFlag(argc, argv, &sin_send, &path)) {
-		if ((fp = fopen(path, "rb")) != NULL)
-			isSmall = isSmallFile(path);
+		if ((fp = fopen(path, "rb")) != NULL) {
+			fileSize = getSize(path);
+			filename = (char*)malloc(sizeof(char) * (strlen(path) + 1));
+			getName(path, filename);
+		}
 		else {
 			printf("Fail to open the file!\n");
 			exit(0);
@@ -61,16 +64,31 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (isSmall)
-		readFile_small(fp, &storage, &pck_length);
+	if (fileSize <= SMALL_SIZE) {
+		// initialize data structures to store all packets
+		map<unsigned int, char*> storage;
+		map<unsigned int, unsigned short> pck_length;
+		bool complete = false;
+		unsigned short largestOffset = readFile_small(fp, filename, &storage, &pck_length);
+		
+		// engage sending
+		printf("[send data] start (%llu)\n", fileSize);
+		complete = engage_small(sock, (struct sockaddr*) &sin_send, (struct sockaddr*) &sin_recv, largestOffset,
+			&storage, &pck_length);
+		if (complete)
+			printf("[completed]\n");
 
-	testing(&storage, &pck_length);
-
-	/* clean up */	
-	fclose(fp);
-	// free all memory resources in temporary storage
-	for (map<unsigned int, char*>::iterator it = storage.begin(); it != storage.end(); it++) {
-		delete it->second;
+		testing(&storage, &pck_length);		// TODO: for testing, will remove
+		
+		// free all memory resources in temporary storage
+		for (map<unsigned int, char*>::iterator it = storage.begin(); it != storage.end(); it++)
+			delete it->second;
 	}
+	else {
+		// TODO: prepare to send a large file
+	}
+
+	fclose(fp);
+	delete filename;
 	return 0;
 }
