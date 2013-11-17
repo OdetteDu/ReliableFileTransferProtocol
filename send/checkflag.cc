@@ -23,7 +23,7 @@ bool getIPandPort(char *in, struct sockaddr_in *sin)
                         }
                         else
                         {
-                                printf("invalid in address\n");
+                                fprintf(stderr, "invalid in address\n");
                                 return false;
                         }
                 }
@@ -35,7 +35,7 @@ bool getIPandPort(char *in, struct sockaddr_in *sin)
                         break;
                 else
                 {
-                        printf("invalid in address\n");
+                        fprintf(stderr, "invalid in address\n");
                         return false;
                 }
         }
@@ -44,7 +44,7 @@ bool getIPandPort(char *in, struct sockaddr_in *sin)
                 IPAddress = IPAddress | temp << index * 8;
         else
         {
-                printf("invalid in address\n");
+                fprintf(stderr, "invalid in address\n");
                 return false;
         }
 
@@ -59,13 +59,13 @@ bool getIPandPort(char *in, struct sockaddr_in *sin)
 			port *= 10;
 			port += (c - '0');
 			if (port > 65535) {
-				printf("Port number must be smaller than 65536.\n");
+				fprintf(stderr, "Port number must be smaller than 65536.\n");
 				return false;
 			}
 		}
 		else
 		{
-			printf("Illegal port number\n");
+			fprintf(stderr, "Illegal port number\n");
 			return false;
 		}
 	}
@@ -80,7 +80,8 @@ bool getIPandPort(char *in, struct sockaddr_in *sin)
  * and file that will be transmitted */
 bool parseFlag(int argc, char *argv[], struct sockaddr_in *sin, char **filepath) {
 	if (argc < 5) {
-                printf("Invalid command line arguments. \nThe input should have at least four arguments.\n");
+                fprintf(stderr, "<usage> %s -r <ip>:<port> -f <file name>\n", argv[0]);
+		fprintf(stderr, "*Note* These four arguments are all required.\n");
                 exit(0);
         }
 
@@ -105,7 +106,7 @@ bool parseFlag(int argc, char *argv[], struct sockaddr_in *sin, char **filepath)
                 }
                 else
                 {
-                        printf("invalid arguments: %s\n", argv[i]);
+                        fprintf(stderr, "invalid arguments: %s\n", argv[i]);
 			return false;
                 }
         }
