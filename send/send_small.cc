@@ -23,7 +23,7 @@ void *send_thread(void *argv) {
 						printf("congestion occurs.\n");
 					}
 					else {
-						printf("*Error* network error, transmission aborted.\n");
+						fprintf(stderr, "*Error* network error, transmission aborted.\n");
 						return NULL;
 					}
 				}
@@ -64,7 +64,7 @@ bool engage_small(int sock_num, struct sockaddr *sock_send, struct sockaddr *soc
 	pthread_t send_tid;
 	rc = pthread_create(&send_tid, NULL, send_thread, NULL);
 	if (rc != 0) {
-		printf("*Error* cannot create a new thread to send packets.\n");
+		fprintf(stderr, "*Error* cannot create a new thread to send packets.\n");
 		return false;
 	}
 

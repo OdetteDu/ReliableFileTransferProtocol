@@ -38,18 +38,18 @@ int main(int argc, char *argv[])
 			getName(path, filename);
 		}
 		else {
-			printf("Fail to open the file!\n");
-			exit(0);
+			fprintf(stderr, "Fail to open the file!\n");
+			exit(-1);
 		}
 	}
 	else
-		exit(0);
+		exit(-1);
 	
 	/* establish the socket */
 	// create UDP socket
 	if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		printf("*Error* unknown error occurs when opening UDP socket.\n");
-		exit(0);
+		fprintf(stderr, "*Error* unknown error occurs when opening UDP socket.\n");
+		exit(-1);
 	}
 
 	// construct receiving socket info
@@ -60,8 +60,8 @@ int main(int argc, char *argv[])
 	
 	// bind the socket to specified port
 	if (bind(sock, (struct sockaddr*) &sin_recv, sizeof(sin_recv)) < 0) {
-		printf("*Error* cannot bind socket to the port.\n");
-		exit(0);
+		fprintf(stderr, "*Error* cannot bind socket to the port.\n");
+		exit(-1);
 	}
 
 	if (fileSize <= SMALL_SIZE) {
@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
 	}
 
 	fclose(fp);
+	close(sock);
 	delete filename;
 	return 0;
 }
