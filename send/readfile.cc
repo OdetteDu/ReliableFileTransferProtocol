@@ -61,6 +61,7 @@ int readFile_small(FILE* fp, char *filename, unsigned int totalLength,
 		
 		char data[maxPackageSize];
 		while (maxPackageSize > countSize && currentSize < totalLength) {
+			c = fgetc(fp);
 			currentSize++;
 			data[countSize] = c;
 			countSize++;
