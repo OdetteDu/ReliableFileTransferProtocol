@@ -36,8 +36,10 @@ void getPacket_small(char *packet, char *payload, unsigned short payloadLen, uns
 		header = (payloadLen<<20)|(offset<<8)|(0x1);
 	
 	*(unsigned int*)(packet+16) = htonl(header);
+
+	memcpy(packet+20, payload, payloadLen);
 	
-	md5((uint8_t *) (packet+16), payloadLen, (uint8_t *) packet);
+	md5((uint8_t *) (packet+16), payloadLen+4, (uint8_t *) packet);
 }
 
 /* Send file to target when the size of file is not larger than 1MB
@@ -67,7 +69,7 @@ int readFile_small(FILE* fp, char *filename, map<unsigned int, char*> *storage, 
 		getPacket_small(packet, data, countSize, offset, 0);
 		
 		storage->insert(pair<unsigned int, char*>(offset, packet));
-		pck_length->insert(pair<unsigned int, unsigned short>(offset, countSize));
+		pck_length->insert(pair<unsigned int, unsigned short>(offset, countSize+20));
 
 		offset++;		// increment offset
 		if (c == EOF) break;	// reach the end of file		
@@ -78,7 +80,7 @@ int readFile_small(FILE* fp, char *filename, map<unsigned int, char*> *storage, 
 	packet = (char*)malloc(sizeof(char) * (len_name + 20));
 	getPacket_small(packet, filename, len_name, offset, 1);
 	storage->insert(pair<unsigned int, char*>(offset, packet));
-	pck_length->insert(pair<unsigned int, unsigned short>(offset, len_name));
+	pck_length->insert(pair<unsigned int, unsigned short>(offset, len_name + 20));
 
 	return offset;
 }
