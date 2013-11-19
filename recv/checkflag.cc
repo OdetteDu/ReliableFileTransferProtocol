@@ -21,7 +21,6 @@ bool parseFlag(int argc, char *argv[], struct sockaddr_in *sin)
 			sin->sin_family = AF_INET;
 			sin->sin_addr.s_addr = INADDR_ANY;
 			sin->sin_port = htons(port);
-			printf("port: %d\n", port);
 			return true;
 		}
 		else {

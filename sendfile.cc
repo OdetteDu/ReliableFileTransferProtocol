@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 		if (complete)
 			printf("[completed]\n");
 
-		testing(&storage, &pck_length);		// TODO: for testing, will remove
+		//testing(&storage, &pck_length);		// TODO: for testing, will remove
 		
 		// free all memory resources in temporary storage
 		for (map<unsigned int, char*>::iterator it = storage.begin(); it != storage.end(); it++)
