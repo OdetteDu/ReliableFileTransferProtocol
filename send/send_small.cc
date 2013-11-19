@@ -15,7 +15,6 @@ void *send_thread(void *argv) {
 		for (map<unsigned int, char*>::iterator it = store.begin(); it != store.end(); it++) {
 			// send all packets that haven't been acknowledged
 			if (!hasACK[it->first]) {
-				printf("send offset: %d\n", it->first);
 				sending = true;
 				// printf("send packet: offset: %d, length: %d\n", (int)(it->first), (int)(pck_len[it->first]));
 				if (sendto(sock, it->second, pck_len[it->first], 0, sin_send, sizeof(struct sockaddr)) < 0) {
@@ -30,9 +29,6 @@ void *send_thread(void *argv) {
 				}
 			}
 		}
-
-		printf("one round finished...\n");
-		sleep(5);
 	}
 }
 
@@ -72,8 +68,6 @@ bool engage_small(int sock_num, struct sockaddr *sock_send, struct sockaddr *soc
 		return false;
 	}
 
-	printf("start sending...");
-
 	bool mayComplete = false;
 	bool complete = false;
 	int numACK = 0;
@@ -87,7 +81,7 @@ bool engage_small(int sock_num, struct sockaddr *sock_send, struct sockaddr *soc
 			if (numACK >= largestOffset)
 				mayComplete = true;
 		}
-			
+		
 		if (mayComplete) {
 			// start to check whether the transmission is completed
 			complete = true;

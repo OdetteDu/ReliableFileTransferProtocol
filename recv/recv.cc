@@ -23,7 +23,6 @@ bool returnACK(int sock, struct sockaddr *sin, unsigned int acknowledge){
 		}
 	}
 
-	printf("send ACK, seq: %d\n", acknowledge);
 	return true;
 }
 
@@ -38,7 +37,6 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 	bool receiving = true;
 	bool fileNameReceived = false;
 
-	printf("start to receive...\n");
 	while (receiving) {
 		// header: interger value on fifth line of the data packet
 		unsigned int fifthLine = ntohl(*(unsigned int *)(pck + 16)); 
@@ -52,23 +50,26 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 			uint8_t result[16];
 			md5((uint8_t *)(pck+16), size+4, result);
 			if (packetCorrect((uint8_t *)pck, result)) {
-				if (fifthLine & 0x2) {
-					fileNameReceived = true;
-					largestOffset = seq;
-					fileName = (char*)malloc(sizeof(char) * (size+6));
-					memcpy(fileName, pck+20, size);
-					fileName[size] = '\0';
-					strcat(fileName, ".recv");
-				}
-				else {
-					memcpy(content + seq*2048, pck + 20, size);
-					if (seq * 2048 + size > fileLength)
-						fileLength = seq * 2048 + size;
-					printf("file length: %d\n", fileLength);
+				if (hasACK.find(seq) != hasACK.end()) {
+					// a new packet arrives
+					if (fifthLine & 0x2) {
+						fileNameReceived = true;
+						largestOffset = seq;
+						fileName = (char*)malloc(sizeof(char) * (size+6));
+						memcpy(fileName, pck+20, size);
+						fileName[size] = '\0';
+						strcat(fileName, ".recv");
+					}
+					else {
+						memcpy(content + seq*2048, pck + 20, size);
+						if (seq * 2048 + size > fileLength)
+							fileLength = seq * 2048 + size;
+					}
+									
+					hasACK.insert(seq);
 				}
 				
 				// send acknowledge to sender
-				hasACK.insert(seq);
 				if (!returnACK(sock, sin, seq))
 					break;
 
@@ -82,7 +83,7 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 						}
 				}
 			}  // endif(packetCorrect): if packet is corrupted, nothing will be useful in it
-		}
+		} // end if (size<=2048): no length of payload will exceed 2048
 
 		// get another packet
 		if (receiving) recvfrom(sock, pck, 2068, 0, sin, &sockaddr_len);
@@ -107,12 +108,10 @@ void engage(int sock, struct sockaddr *sin) {
 	unsigned int sockaddr_len = sizeof(struct sockaddr);
 	char *recvBuf = (char*)malloc(sizeof(char) * 2068);
 	bool firstArrived = false;
-	printf("start to receive...\n");
 
 	// waiting for the first (correct) packet to arrive and determine the receive procedure
 	while (!firstArrived) {
 		int count = recvfrom(sock, recvBuf, 2068, 0, sin, &sockaddr_len);
-		printf("receive a packet...%d\n", count);
 		// because of the header design, no packet has a size less than 21.
 		if (count > 20) {
 			// check the correctness of packet
@@ -122,8 +121,6 @@ void engage(int sock, struct sockaddr *sin) {
 				firstArrived = true;
 		}
 	}
-
-	printf("first packet arrived...\n");
 
 	unsigned int header = ntohl(*(unsigned int*)(recvBuf+16));
 	if (header & 0x1) {

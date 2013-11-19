@@ -49,7 +49,7 @@ bool getIPandPort(char *in, struct sockaddr_in *sin)
         }
 
 	sin->sin_addr.s_addr = htonl(IPAddress);
-	printf("IP: %x\n", htonl(IPAddress));
+	//printf("IP: %x\n", htonl(IPAddress));
 
 	for(i++; i < len; i++)
 	{
@@ -71,7 +71,7 @@ bool getIPandPort(char *in, struct sockaddr_in *sin)
 	}
 
 	sin->sin_port = htons((unsigned short)port);
-	printf("port: %d\n", port);
+	//printf("port: %d\n", port);
 
         return true;
 }
