@@ -45,11 +45,13 @@ void getPacket_small(char *packet, char *payload, unsigned short payloadLen, uns
 /* Send file to target when the size of file is not larger than 1MB
  * header can distinguish last packet with others, and the last packet only contains file name
  * Return the largest offset (in unit of 2KB) */
-int readFile_small(FILE* fp, char *filename, map<unsigned int, char*> *storage, map<unsigned int, unsigned short> *pck_length)
+int readFile_small(FILE* fp, char *filename, unsigned int totalLength,
+	map<unsigned int, char*> *storage, map<unsigned int, unsigned short> *pck_length)
 {
 	char c;
 	unsigned short countSize;
 	unsigned short offset = 0;
+	unsigned int currentSize = 0;
 	unsigned short maxPackageSize = 2048;
 	char *packet;
 
@@ -58,21 +60,21 @@ int readFile_small(FILE* fp, char *filename, map<unsigned int, char*> *storage, 
 		countSize = 0;
 		
 		char data[maxPackageSize];
-		while (maxPackageSize > countSize && (c = fgetc(fp)) != EOF) {
+		while (maxPackageSize > countSize && currentSize < totalLength) {
+			currentSize++;
 			data[countSize] = c;
 			countSize++;
 		}
 		// carefully check whether the the packet size is times of 2048
-		if (countSize == 0) break;	// reach the end of file
-
+		
 		packet = (char*)malloc(sizeof(char) * (countSize + 20));
 		getPacket_small(packet, data, countSize, offset, 0);
 		
 		storage->insert(pair<unsigned int, char*>(offset, packet));
 		pck_length->insert(pair<unsigned int, unsigned short>(offset, countSize+20));
 
-		offset++;		// increment offset
-		if (c == EOF) break;	// reach the end of file		
+		offset++;				// increment offset
+		if (currentSize == totalLength) break;	// reach the end of file
 	}
 	
 	/* construct a special packet that contains file name */
