@@ -50,7 +50,7 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 			uint8_t result[16];
 			md5((uint8_t *)(pck+16), size+4, result);
 			if (packetCorrect((uint8_t *)pck, result)) {
-				if (hasACK.find(seq) != hasACK.end()) {
+				if (hasACK.find(seq) == hasACK.end()) {
 					// a new packet arrives
 					if (fifthLine & 0x2) {
 						fileNameReceived = true;
