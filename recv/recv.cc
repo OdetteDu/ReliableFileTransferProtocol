@@ -23,6 +23,7 @@ bool returnACK(int sock, struct sockaddr *sin, unsigned int acknowledge){
 		}
 	}
 
+	printf("send ACK, seq: %d\n", acknowledge);
 	return true;
 }
 
@@ -31,21 +32,22 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 	unsigned int sockaddr_len = sizeof(struct sockaddr);
 	set<unsigned int> hasACK;
 	unsigned int largestOffset = -1;
-	unsigned int fileLength = -1;
+	int fileLength = -1;
 	char *content = (char*)malloc(sizeof(char) * SMALL_SIZE);
 	char *fileName = NULL;
 	bool receiving = true;
 	bool fileNameReceived = false;
 
+	printf("start to receive...\n");
 	while (receiving) {
 		// header: interger value on fifth line of the data packet
 		unsigned int fifthLine = ntohl(*(unsigned int *)(pck + 16)); 
-    		unsigned int size = (fifthLine >> 20) & 0xFFF;
+    		int size = (fifthLine >> 20) & 0xFFF;
 		// Since the data packet sent will never exceed 2048 byte,
 		// there must be an error occurred if size is greater than 2048
     		if (size <= 2048) {
 			// sequence number (also is offset) from the fifth line of the packet
-			unsigned int seq = (fifthLine >> 8) & 0xFFF;
+			int seq = (fifthLine >> 8) & 0xFFF;
 			// check the correctness of packet
 			uint8_t result[16];
 			md5((uint8_t *)(pck+16), size+4, result);
@@ -59,13 +61,14 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 					strcat(fileName, ".recv");
 				}
 				else {
-					hasACK.insert(seq);
 					memcpy(content + seq*2048, pck + 20, size);
 					if (seq * 2048 + size > fileLength)
 						fileLength = seq * 2048 + size;
+					printf("file length: %d\n", fileLength);
 				}
 				
 				// send acknowledge to sender
+				hasACK.insert(seq);
 				if (!returnACK(sock, sin, seq))
 					break;
 
@@ -89,6 +92,7 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 		ofstream fs;
 		fs.open(fileName, ofstream::out | ofstream::trunc);
 		fs.write(content, fileLength);
+		printf("file length: %d\n", fileLength);
 		fs.close();
 	}
 
@@ -103,10 +107,12 @@ void engage(int sock, struct sockaddr *sin) {
 	unsigned int sockaddr_len = sizeof(struct sockaddr);
 	char *recvBuf = (char*)malloc(sizeof(char) * 2068);
 	bool firstArrived = false;
+	printf("start to receive...\n");
 
 	// waiting for the first (correct) packet to arrive and determine the receive procedure
 	while (!firstArrived) {
 		int count = recvfrom(sock, recvBuf, 2068, 0, sin, &sockaddr_len);
+		printf("receive a packet...%d\n", count);
 		// because of the header design, no packet has a size less than 21.
 		if (count > 20) {
 			// check the correctness of packet
@@ -116,6 +122,8 @@ void engage(int sock, struct sockaddr *sin) {
 				firstArrived = true;
 		}
 	}
+
+	printf("first packet arrived...\n");
 
 	unsigned int header = ntohl(*(unsigned int*)(recvBuf+16));
 	if (header & 0x1) {
