@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 		map<unsigned int, char*> storage;
 		map<unsigned int, unsigned short> pck_length;
 		bool complete = false;
-		unsigned short largestOffset = readFile_small(fp, filename, &storage, &pck_length);
+		unsigned short largestOffset = readFile_small(fp, filename, fileSize, &storage, &pck_length);
 		
 		// engage sending
 		printf("[send data] start (%llu)\n", fileSize);
