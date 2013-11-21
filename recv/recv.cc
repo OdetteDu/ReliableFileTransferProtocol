@@ -50,7 +50,9 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 			uint8_t result[16];
 			md5((uint8_t *)(pck+16), size+4, result);
 			if (packetCorrect((uint8_t *)pck, result)) {
+				printf("[recv data] length (%d) ", size);
 				if (hasACK.find(seq) == hasACK.end()) {
+					printf("ACCEPTED\n");
 					// a new packet arrives
 					if (fifthLine & 0x2) {
 						fileNameReceived = true;
@@ -68,6 +70,8 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 									
 					hasACK.insert(seq);
 				}
+				else
+					printf("IGNORED\n");
 				
 				// send acknowledge to sender
 				if (!returnACK(sock, sin, seq))
