@@ -83,7 +83,11 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 						}
 				}
 			}  // endif(packetCorrect): if packet is corrupted, nothing will be useful in it
+			else
+				printf("[recv corrupt packet]\n");
 		} // end if (size<=2048): no length of payload will exceed 2048
+		else
+			printf("[recv corrupt packet]\n");
 
 		// get another packet
 		if (receiving) recvfrom(sock, pck, 2068, 0, sin, &sockaddr_len);
