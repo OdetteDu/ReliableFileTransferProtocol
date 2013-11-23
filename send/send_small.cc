@@ -34,12 +34,19 @@ void *send_thread(void *argv) {
 
 /* process the received acknowledgement for small file
  * return true if succeed */
-bool parseACK_small(char *recvACK)
+bool parseACK_small(char *recvACK, unsigned int sig_completed)
 {
 	uint8_t r[16];
 	md5((uint8_t *)(recvACK+16), 4, r);
 	if (packetCorrect((uint8_t *) recvACK, r)) {
-		hasACK[ntohl(*(unsigned int*)(recvACK + 16))] = true;
+		unsigned int ackNum = ntohl(*(unsigned int*)(recvACK + 16));
+		if (ackNum == sig_completed) {
+			// receive a "completed" signal, no more check
+			for (int i = 0; i < sig_completed; i++)
+				hasACK[i] = true;
+		}
+		else
+			hasACK[ackNum] = true;
 		return true;
 	}
 	else
@@ -68,31 +75,22 @@ bool engage_small(int sock_num, struct sockaddr *sock_send, struct sockaddr *soc
 		return false;
 	}
 
-	bool mayComplete = false;
 	bool complete = false;
-	int numACK = 0;
 	int recvCount;
 	char *recvBuf = (char*)malloc(sizeof(char) * 20);
 	unsigned int sockaddr_len = sizeof(struct sockaddr);
-	while (true) {
+	while (!complete) {
 		recvCount = recvfrom(sock, recvBuf, 20, 0, sin_recv, &sockaddr_len);
-		if (recvCount == 20 && parseACK_small(recvBuf)) {
-			numACK++;
-			if (numACK >= largestOffset)
-				mayComplete = true;
-		}
+		if (recvCount == 20)
+			parseACK_small(recvBuf, largestOffset+1);
 		
-		if (mayComplete) {
-			// start to check whether the transmission is completed
-			complete = true;
-			for (i = 0; i < largestOffset + 1; i++)
-				if (!hasACK[i]) {
-					complete = false;
-					break;
-				}
-
-			if (complete) break;
-		}
+		// check whether the transmission is completed
+		complete = true;
+		for (i = 0; i < largestOffset + 1; i++)
+			if (!hasACK[i]) {
+				complete = false;
+				break;
+			}
 	}
 
 	delete recvBuf;

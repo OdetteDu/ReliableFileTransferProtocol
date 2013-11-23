@@ -98,6 +98,11 @@ bool receive_small(int sock, struct sockaddr *sin, char *pck){
 	}
 
 	if (!receiving) {
+		// sending the "completed" acknowledgement (sequence number of the last packet plus one)
+		// multiple sending to compensate potential packet loss
+		for (int i = 0; i < 20; i++)
+			returnACK(sock, sin, largestOffset+1);
+		// write the data to local file
 		ofstream fs;
 		fs.open(fileName, ofstream::out | ofstream::trunc);
 		fs.write(content, fileLength);
