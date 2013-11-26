@@ -29,6 +29,10 @@ int main(int argc, char *argv[])
 	int sock;
 	struct sockaddr_in sin_send;
 	struct sockaddr_in sin_recv;
+	struct timeval tv;
+
+	tv.tv_sec = 5;
+	tv.tv_usec = 0;
 	
 	/* parse command line arguments and prepare socket info to send data */
 	if (parseFlag(argc, argv, &sin_send, &path)) {
@@ -49,6 +53,11 @@ int main(int argc, char *argv[])
 	// create UDP socket
 	if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 		fprintf(stderr, "*Error* unknown error occurs when opening UDP socket.\n");
+		exit(-1);
+	}
+
+	if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(struct timeval)) < 0) {
+		fprintf(stderr, "*Error* cannot set time out for receiving.\n");
 		exit(-1);
 	}
 
