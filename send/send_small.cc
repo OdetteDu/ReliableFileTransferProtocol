@@ -7,10 +7,13 @@ static map<unsigned int, char*> store;
 static map<unsigned int, unsigned short> pck_len;
 static sockaddr *sin_send;
 static sockaddr *sin_recv;
+static bool timeout;
 
 void *send_thread(void *argv) {
 	bool sending = true;
 	while (sending) {
+		if (timeout)
+			return NULL;
 		sending = false;
 		for (map<unsigned int, char*>::iterator it = store.begin(); it != store.end(); it++) {
 			// send all packets that haven't been acknowledged
@@ -67,6 +70,7 @@ bool engage_small(int sock_num, struct sockaddr *sock_send, struct sockaddr *soc
 	pck_len = *pck_length;
 	sin_send = sock_send;
 	sin_recv = sock_recv;
+	timeout = false;
 
 	pthread_t send_tid;
 	rc = pthread_create(&send_tid, NULL, send_thread, NULL);
@@ -81,7 +85,12 @@ bool engage_small(int sock_num, struct sockaddr *sock_send, struct sockaddr *soc
 	unsigned int sockaddr_len = sizeof(struct sockaddr);
 	while (!complete) {
 		recvCount = recvfrom(sock, recvBuf, 20, 0, sin_recv, &sockaddr_len);
-		if (recvCount == 20)
+		if (recvCount < 0) {
+			fprintf(stderr, "Time out occurs.\n");
+			timeout = true;
+			break;
+		}
+		else if (recvCount == 20)
 			parseACK_small(recvBuf, largestOffset+1);
 		
 		// check whether the transmission is completed

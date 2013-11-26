@@ -4,7 +4,7 @@
 int main(int argc, char *argv[]) {
 	int sock;
 	struct sockaddr_in sin_recv;
-	
+
 	/* parse command line arguments and prepare socket info to receive data */
 	if (!parseFlag(argc, argv, &sin_recv))
 		exit(-1);
