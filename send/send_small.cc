@@ -8,11 +8,12 @@ static map<unsigned int, unsigned short> pck_len;
 static sockaddr *sin_send;
 static sockaddr *sin_recv;
 static bool timeout;
+static bool stop;
 
-void *send_thread(void *argv) {
+void *send_thread_small(void *argv) {
 	bool sending = true;
 	while (sending) {
-		if (timeout)
+		if (stop)
 			return NULL;
 		sending = false;
 		for (map<unsigned int, char*>::iterator it = store.begin(); it != store.end(); it++) {
@@ -56,7 +57,7 @@ bool parseACK_small(char *recvACK, unsigned int sig_completed)
 		return false;
 }
 
-/* start to send file, return true if succeed */
+/* start to send small file, return true if succeed */
 bool engage_small(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_recv,
 	unsigned short largestOffset, map<unsigned int, char*> *storage, map<unsigned int, unsigned short> *pck_length)
 {
@@ -70,29 +71,34 @@ bool engage_small(int sock_num, struct sockaddr *sock_send, struct sockaddr *soc
 	pck_len = *pck_length;
 	sin_send = sock_send;
 	sin_recv = sock_recv;
-	timeout = false;
+	stop = false;
 
 	pthread_t send_tid;
-	rc = pthread_create(&send_tid, NULL, send_thread, NULL);
+	rc = pthread_create(&send_tid, NULL, send_thread_small, NULL);
 	if (rc != 0) {
 		fprintf(stderr, "*Error* cannot create a new thread to send packets.\n");
 		return false;
 	}
 
 	bool complete = false;
+	int timeoutCount = 1;
 	int recvCount;
 	char *recvBuf = (char*)malloc(sizeof(char) * 20);
 	unsigned int sockaddr_len = sizeof(struct sockaddr);
 	while (!complete) {
 		recvCount = recvfrom(sock, recvBuf, 20, 0, sin_recv, &sockaddr_len);
 		if (recvCount < 0) {
-			fprintf(stderr, "Time out occurs.\n");
-			timeout = true;
-			break;
+			fprintf(stderr, "Time out occurs... (no ACK in %d secondes)\n", (timeoutCount++)*5);
+			if (timeoutCount > 10) {
+				stop = true;
+				break;
+			}
+			else continue;
 		}
 		else if (recvCount == 20)
 			parseACK_small(recvBuf, largestOffset+1);
-		
+		timeoutCount = 0;
+
 		// check whether the transmission is completed
 		complete = true;
 		for (i = 0; i < largestOffset + 1; i++)
