@@ -20,4 +20,4 @@ bool engage_small(int sock_num, struct sockaddr *sock_send, struct sockaddr *soc
 	unsigned short largestOffset, map<unsigned int, char*> *storage, map<unsigned int, unsigned short> *pck_length);
 
 /* start to send big file, return true if succeed */
-bool engage_big(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_recv, FILE* fp, unsigned long long fLen);
+bool engage_big(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_recv, FILE* fp, char* fileName, unsigned long long fLen);

@@ -121,10 +121,11 @@ void engage(int sock, struct sockaddr *sin) {
 	unsigned int sockaddr_len = sizeof(struct sockaddr);
 	char *recvBuf = (char*)malloc(sizeof(char) * 2068);
 	bool firstArrived = false;
+	int count;
 
 	// waiting for the first (correct) packet to arrive and determine the receive procedure
 	while (!firstArrived) {
-		int count = recvfrom(sock, recvBuf, 2068, 0, sin, &sockaddr_len);
+		count = recvfrom(sock, recvBuf, 2068, 0, sin, &sockaddr_len);
 		// because of the header design, no packet has a size less than 21.
 		if (count > 20) {
 			// check the correctness of packet
@@ -132,7 +133,11 @@ void engage(int sock, struct sockaddr *sin) {
     			md5((uint8_t *)(recvBuf+16), count-16, result);
 			if (packetCorrect((uint8_t *)recvBuf, result))
 				firstArrived = true;
+			else
+				printf("[recv corrupt packet]\n");
 		}
+		else
+			printf("[recv corrupt packet]\n");
 	}
 
 	unsigned int header = ntohl(*(unsigned int*)(recvBuf+16));
@@ -142,7 +147,41 @@ void engage(int sock, struct sockaddr *sin) {
 			printf("[completed]\n");
 	}
 	else {
-		// TODO: mode: large file transmission
+		// interpret the first packet that contains information of file name and size
+		while (header != 0) {
+			// it's not the first packet, receive again
+			count = recvfrom(sock, recvBuf, 2068, 0, sin, &sockaddr_len);
+			if (count > 20) {
+				uint8_t result[16];
+	    			md5((uint8_t *)(recvBuf+16), count-16, result);
+				if (packetCorrect((uint8_t *)recvBuf, result))
+					header = ntohl(*(unsigned int*)(recvBuf+16));
+				else
+					printf("[recv corrupt packet]\n");
+			}
+			else
+				printf("[recv corrupt packet]\n");
+		}
+		
+		unsigned int filenameSize = ntohl(*(unsigned int*)(recvBuf+20));
+		unsigned long long fileSize = ((unsigned long long)(ntohl(*(unsigned int*)(recvBuf+24))) << 32)
+						| (unsigned long long)ntohl(*(unsigned int*)(recvBuf+28));
+		char *fileName = (char*)malloc(sizeof(char) * (filenameSize+6));
+		memcpy(fileName, recvBuf+32, filenameSize);
+		fileName[filenameSize] = '\0';
+		strcat(fileName, ".recv");
+
+		FILE* fp = fopen(fileName, "wb+");
+		char *zero = (char*)malloc(sizeof(char));
+		memset(zero, 0, sizeof(char));
+		for (unsigned long long i = 0; i < fileSize; i++)
+			fwrite(zero, sizeof(char), 1, fp);
+		returnACK(sock, sin, 0);
+		if (recv_big(sock, sin, fp, fileSize))
+			printf("[completed]\n");
+
+		fclose(fp);
+		delete fileName;
 	}
 
 	delete recvBuf;

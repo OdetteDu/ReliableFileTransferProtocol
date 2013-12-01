@@ -21,20 +21,38 @@ struct sendQueue {
 };
 struct sendQueue *head;
 
+/* get the first packet that contains file information */
+char* getFirstPacket(char* filename, unsigned long long fLen) {
+	int length = 12 + sizeof(char) * strlen(filename);
+	unsigned int high = fLen >> 32;
+	unsigned int low = fLen & 0x0ffffffff;
+	char* packet = (char*)malloc(length + 20);
+
+	*(unsigned int*)(packet+16) = 0;			// sequence number and flags
+	*(unsigned int*)(packet+20) = htonl(strlen(filename));	// length of file name
+	*(unsigned int*)(packet+24) = htonl(high);		// high 32-bit of file size
+	*(unsigned int*)(packet+28) = htonl(low);		// low 32-bit of file size
+	memcpy(packet+32, filename, strlen(filename));
+    
+	md5((uint8_t *) (packet+16), length+4, (uint8_t *) packet);
+    
+	return packet;
+}
+
 /* get a packet from specific position in a file */
-char* getBigPacket(FILE *fp, unsigned int offset, unsigned short length, int status){
+char* getBigPacket(FILE *fp, unsigned int seq, unsigned short length, int status){
     char* packet;
     unsigned int header;
     
     packet = (char*)malloc(sizeof(char) * (length + 20));
     
-    fseek(fp, offset * MAX_PAYLOAD, SEEK_SET);
+    fseek(fp, (seq-1) * MAX_PAYLOAD, SEEK_SET);
     fread(packet + 20, 1, length, fp);
     
     if(status == 1)
-        header = (offset << 2)| 0x2;
+        header = (seq << 2)| 0x2;
     else
-        header = offset << 2;
+        header = seq << 2;
     
     *(unsigned int*)(packet+16) = htonl(header);
     
@@ -78,13 +96,13 @@ void freeQueue() {
 }
 
 /* start to send big file, return true if succeed */
-bool engage_big(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_recv, FILE* fp, unsigned long long fLen) {
+bool engage_big(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_recv, FILE* fp, char* fileName, unsigned long long fLen) {
 	sock = sock_num;
 	sin_send = sock_send;
 	sin_recv = sock_recv;
 	stop = false;
 
-	unsigned int minWait = 0, maxWait = (unsigned int)(fLen / MAX_PAYLOAD);
+	unsigned int minWait = 0, maxWait = (unsigned int)(fLen / MAX_PAYLOAD) + 1;
 	unsigned short lastpckLength = (unsigned short)(fLen % MAX_PAYLOAD);
 	if (lastpckLength == 0) {
 		lastpckLength = MAX_PAYLOAD;
@@ -92,13 +110,16 @@ bool engage_big(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_
 	}
 
 	/* construct the sending queue */
-	int i = 1;
+	// the first packet indicates information for the file
 	head = (struct sendQueue*)malloc(sizeof(struct sendQueue));
 	head->seq = 0;
-	head->pck = getBigPacket(fp, 0, MAX_PAYLOAD, 0);
+	head->pck = getFirstPacket(fileName, fLen);
 	head->hasACK = false;
 	head->next = NULL;
 	struct sendQueue* tail = head;
+
+	// following packets contain data in the file
+	int i = 1;	// sequence number of packet
 	while (i < WINDOW_SIZE && i <= maxWait) {
 		struct sendQueue *cur = (struct sendQueue*)malloc(sizeof(struct sendQueue));
 		cur->seq = i;
@@ -115,7 +136,7 @@ bool engage_big(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_
 	}
 
 	/* semaphore to prevent race between sending thread and main */
-	sem_init(&mutex, 0 , 1);
+	sem_init(&mutex, 0, 1);
 
 	pthread_t send_tid;
 	int rc = pthread_create(&send_tid, NULL, send_thread_big, NULL);

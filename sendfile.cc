@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 			delete it->second;
 	}
 	else
-		complete = engage_big(sock, (struct sockaddr*) &sin_send, (struct sockaddr*) &sin_recv, fp, fileSize);
+		complete = engage_big(sock, (struct sockaddr*) &sin_send, (struct sockaddr*) &sin_recv, fp, filename, fileSize);
 
 	if (complete)
 		printf("[completed]\n");
