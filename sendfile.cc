@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
 	}
 
 	bool complete = false;
+	printf("[send data] start (%llu)\n", fileSize);
 	if (fileSize <= SMALL_SIZE) {
 		// initialize data structures to store all packets
 		map<unsigned int, char*> storage;
@@ -65,7 +66,6 @@ int main(int argc, char *argv[])
 		unsigned short largestOffset = readFile_small(fp, filename, fileSize, &storage, &pck_length);
 		
 		// engage sending
-		printf("[send data] start (%llu)\n", fileSize);
 		complete = engage_small(sock, (struct sockaddr*) &sin_send, (struct sockaddr*) &sin_recv, largestOffset,
 			&storage, &pck_length);
 		
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 			delete it->second;
 	}
 	else
-		complete = engage_big(sock, (struct sockaddr*) &sin_send, (struct sockaddr*) &sin_recv, fp, fileSize);
+		complete = engage_big(sock, (struct sockaddr*) &sin_send, (struct sockaddr*) &sin_recv, fp, filename, fileSize);
 
 	if (complete)
 		printf("[completed]\n");
