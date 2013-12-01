@@ -177,6 +177,7 @@ void engage(int sock, struct sockaddr *sin) {
 		for (unsigned long long i = 0; i < fileSize; i++)
 			fwrite(zero, sizeof(char), 1, fp);
 		returnACK(sock, sin, 0);
+
 		if (recv_big(sock, sin, fp, fileSize))
 			printf("[completed]\n");
 

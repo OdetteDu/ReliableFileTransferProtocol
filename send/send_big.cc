@@ -33,7 +33,9 @@ char* getFirstPacket(char* filename, unsigned long long fLen) {
 	*(unsigned int*)(packet+24) = htonl(high);		// high 32-bit of file size
 	*(unsigned int*)(packet+28) = htonl(low);		// low 32-bit of file size
 	memcpy(packet+32, filename, strlen(filename));
-    
+
+	//printf("first packet:\nfilename: %s, high-bit of size: %d, low-bit of size: %d\n", filename, high, low);
+
 	md5((uint8_t *) (packet+16), length+4, (uint8_t *) packet);
     
 	return packet;
@@ -114,6 +116,7 @@ bool engage_big(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_
 	head = (struct sendQueue*)malloc(sizeof(struct sendQueue));
 	head->seq = 0;
 	head->pck = getFirstPacket(fileName, fLen);
+	head->pckLen = strlen(fileName) + 32;
 	head->hasACK = false;
 	head->next = NULL;
 	struct sendQueue* tail = head;
@@ -123,10 +126,14 @@ bool engage_big(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_
 	while (i < WINDOW_SIZE && i <= maxWait) {
 		struct sendQueue *cur = (struct sendQueue*)malloc(sizeof(struct sendQueue));
 		cur->seq = i;
-		if (i != maxWait)
+		if (i != maxWait) {
 			cur->pck = getBigPacket(fp, i, MAX_PAYLOAD, 0);
-		else
+			cur->pckLen = MAX_PAYLOAD + 20;
+		}
+		else {
 			cur->pck = getBigPacket(fp, i, lastpckLength, 1);
+			cur->pckLen = lastpckLength + 20;
+		}
 		cur->hasACK = false;
 		cur->next = NULL;
 
@@ -174,10 +181,14 @@ bool engage_big(int sock_num, struct sockaddr *sock_send, struct sockaddr *sock_
 						struct sendQueue *toAdd = (struct sendQueue*)malloc(sizeof(struct sendQueue));
 						unsigned int newSeq = tail->seq + 1;
 						toAdd->seq = newSeq;
-						if (i != maxWait)
+						if (newSeq != maxWait) {
 							toAdd->pck = getBigPacket(fp, newSeq, MAX_PAYLOAD, 0);
-						else
+							toAdd->pckLen = MAX_PAYLOAD + 20;
+						}
+						else {
 							toAdd->pck = getBigPacket(fp, newSeq, lastpckLength, 1);
+							toAdd->pckLen = lastpckLength + 20;
+						}
 						toAdd->hasACK = false;
 						toAdd->next = NULL;
 
