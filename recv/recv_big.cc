@@ -87,7 +87,7 @@ bool recv_big(int sock, struct sockaddr *sin, FILE *fp, unsigned long long lengt
 	
 	// sending the "completed" acknowledgement (sequence number of the last packet plus one)
 	// multiple sending to compensate potential packet loss
-	for (i = 0; i < 20; i++)
+	for (i = 0; i < 30; i++)
 		returnACK(sock, sin, maxWait + 1);
 	return true;
 }
